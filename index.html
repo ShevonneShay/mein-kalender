@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f3ff" />
+  <meta name="description" content="Lokaler Kalender für Geburtstage, Termine und jährlich wiederkehrende Ereignisse." />
+  <title>Mein Kalender</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <div class="eyebrow">LOKAL · PRIVAT · OFFLINE</div>
+      <h1>Mein Kalender</h1>
+      <p>Geburtstage und Termine – nur auf diesem Gerät gespeichert.</p>
+    </div>
+    <button id="installBtn" class="secondary hidden" type="button">App installieren</button>
+  </header>
+
+  <main class="shell">
+    <section class="hero card">
+      <div>
+        <span class="today-label">Heute</span>
+        <h2 id="todayText"></h2>
+        <p id="nextEventText" class="muted"></p>
+      </div>
+      <button id="openNewBtn" class="primary" type="button">+ Neuer Eintrag</button>
+    </section>
+
+    <nav class="tabs" aria-label="Ansichten">
+      <button class="tab active" data-view="upcoming" type="button">Nächste Termine</button>
+      <button class="tab" data-view="calendar" type="button">Kalender</button>
+      <button class="tab" data-view="data" type="button">Daten</button>
+    </nav>
+
+    <section id="upcomingView" class="view active-view">
+      <div class="toolbar card compact">
+        <div class="search-wrap">
+          <input id="searchInput" type="search" placeholder="Suchen …" autocomplete="off" />
+        </div>
+        <select id="filterSelect" aria-label="Kategorie filtern">
+          <option value="all">Alle</option>
+          <option value="birthday">Geburtstage</option>
+          <option value="appointment">Termine</option>
+          <option value="other">Sonstige</option>
+        </select>
+      </div>
+      <div id="upcomingList" class="event-list"></div>
+      <div id="emptyState" class="empty card hidden">
+        <div class="empty-icon">✦</div>
+        <h3>Noch nichts eingetragen</h3>
+        <p>Lege deinen ersten Geburtstag oder Termin an.</p>
+        <button id="emptyNewBtn" class="primary" type="button">Ersten Eintrag anlegen</button>
+      </div>
+    </section>
+
+    <section id="calendarView" class="view">
+      <div class="calendar card">
+        <div class="calendar-head">
+          <button id="prevMonthBtn" class="icon-btn" type="button" aria-label="Vorheriger Monat">‹</button>
+          <h2 id="monthTitle"></h2>
+          <button id="nextMonthBtn" class="icon-btn" type="button" aria-label="Nächster Monat">›</button>
+        </div>
+        <div class="weekdays" aria-hidden="true">
+          <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+    </section>
+
+    <section id="dataView" class="view">
+      <div class="card data-card">
+        <h2>Datensicherung</h2>
+        <p>Deine Einträge liegen lokal in diesem Browser. Mit Export/Import kannst du sie sichern oder auf ein anderes Gerät übertragen.</p>
+        <div class="data-actions">
+          <button id="exportBtn" class="primary" type="button">Backup exportieren</button>
+          <label class="secondary file-label">
+            Backup importieren
+            <input id="importInput" type="file" accept="application/json,.json" hidden />
+          </label>
+        </div>
+        <div class="divider"></div>
+        <h3>Alles löschen</h3>
+        <p class="muted">Löscht nur die lokalen Daten auf diesem Gerät.</p>
+        <button id="clearBtn" class="danger" type="button">Alle Einträge löschen</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="eventDialog">
+    <form id="eventForm" method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">EINTRAG</div>
+          <h2 id="dialogTitle">Neuer Eintrag</h2>
+        </div>
+        <button id="closeDialogBtn" class="icon-btn" type="button" aria-label="Schließen">×</button>
+      </div>
+
+      <input id="eventId" type="hidden" />
+
+      <label>
+        Titel
+        <input id="titleInput" type="text" required maxlength="120" placeholder="z. B. Annas Geburtstag" />
+      </label>
+
+      <div class="form-row">
+        <label>
+          Art
+          <select id="typeInput">
+            <option value="birthday">Geburtstag</option>
+            <option value="appointment">Termin</option>
+            <option value="other">Sonstiges</option>
+          </select>
+        </label>
+        <label>
+          Datum
+          <input id="dateInput" type="date" required />
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Uhrzeit (optional)
+          <input id="timeInput" type="time" />
+        </label>
+        <label class="checkbox-label">
+          <input id="yearlyInput" type="checkbox" />
+          <span>Jedes Jahr wiederholen</span>
+        </label>
+      </div>
+
+      <label>
+        Notiz (optional)
+        <textarea id="notesInput" rows="3" maxlength="500" placeholder="z. B. Karte besorgen, Restaurant reservieren …"></textarea>
+      </label>
+
+      <div class="dialog-actions">
+        <button id="deleteBtn" class="danger ghost hidden" type="button">Löschen</button>
+        <div class="spacer"></div>
+        <button id="cancelBtn" class="secondary" type="button">Abbrechen</button>
+        <button class="primary" type="submit">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
