@@ -34,6 +34,7 @@
     <nav class="tabs" aria-label="Ansichten">
       <button class="tab active" data-view="upcoming" type="button">Nächste Termine</button>
       <button class="tab" data-view="calendar" type="button">Kalender</button>
+      <button class="tab" data-view="year" type="button">Jahr</button>
       <button class="tab" data-view="data" type="button">Daten</button>
     </nav>
 
@@ -70,6 +71,17 @@
           <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
         </div>
         <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+    </section>
+
+    <section id="yearView" class="view">
+      <div class="year card">
+        <div class="calendar-head">
+          <button id="prevYearBtn" class="icon-btn" type="button" aria-label="Vorheriges Jahr">‹</button>
+          <h2 id="yearTitle"></h2>
+          <button id="nextYearBtn" class="icon-btn" type="button" aria-label="Nächstes Jahr">›</button>
+        </div>
+        <div id="yearGrid" class="year-grid"></div>
       </div>
     </section>
 
@@ -122,6 +134,21 @@
           Datum
           <input id="dateInput" type="date" required />
         </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Farbe
+          <select id="colorInput">
+            <option value="purple">Lila</option>
+            <option value="pink">Rosa</option>
+            <option value="blue">Blau</option>
+            <option value="green">Grün</option>
+            <option value="orange">Orange</option>
+            <option value="gray">Grau</option>
+          </select>
+        </label>
+        <div></div>
       </div>
 
       <div class="form-row">
