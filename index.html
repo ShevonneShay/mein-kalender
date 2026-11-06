@@ -49,6 +49,7 @@
           <option value="other">Sonstige</option>
         </select>
       </div>
+      <div id="reminderBanner" class="reminder-banner card hidden"></div>
       <div id="upcomingList" class="event-list"></div>
       <div id="emptyState" class="empty card hidden">
         <div class="empty-icon">✦</div>
@@ -128,19 +129,31 @@
           Uhrzeit (optional)
           <input id="timeInput" type="time" />
         </label>
-        <label class="checkbox-label">
-          <input id="yearlyInput" type="checkbox" />
-          <span>Jedes Jahr wiederholen</span>
+        <label>
+          Erinnerung
+          <select id="reminderInput">
+            <option value="-1">Keine</option>
+            <option value="0">Am Tag des Termins</option>
+            <option value="1">1 Tag vorher</option>
+            <option value="3">3 Tage vorher</option>
+            <option value="7">1 Woche vorher</option>
+          </select>
         </label>
       </div>
+
+      <label class="checkbox-label no-top-pad">
+        <input id="yearlyInput" type="checkbox" />
+        <span>Jedes Jahr wiederholen</span>
+      </label>
 
       <label>
         Notiz (optional)
         <textarea id="notesInput" rows="3" maxlength="500" placeholder="z. B. Karte besorgen, Restaurant reservieren …"></textarea>
       </label>
 
-      <div class="dialog-actions">
+      <div class="dialog-actions wrap-actions">
         <button id="deleteBtn" class="danger ghost hidden" type="button">Löschen</button>
+        <button id="calendarExportBtn" class="secondary hidden" type="button">In Geräte-Kalender</button>
         <div class="spacer"></div>
         <button id="cancelBtn" class="secondary" type="button">Abbrechen</button>
         <button class="primary" type="submit">Speichern</button>
