@@ -22,9 +22,12 @@ const els = {
   typeInput: $('typeInput'),
   dateInput: $('dateInput'),
   timeInput: $('timeInput'),
+  reminderInput: $('reminderInput'),
   yearlyInput: $('yearlyInput'),
   notesInput: $('notesInput'),
+  reminderBanner: $('reminderBanner'),
   deleteBtn: $('deleteBtn'),
+  calendarExportBtn: $('calendarExportBtn'),
   toast: $('toast'),
   installBtn: $('installBtn'),
 };
@@ -107,6 +110,45 @@ function ageText(event, occurrence) {
   return age > 0 ? `${age}. Geburtstag` : '';
 }
 
+function reminderLabel(days) {
+  const value = Number(days);
+  if (value < 0 || Number.isNaN(value)) return '';
+  if (value === 0) return 'am selben Tag';
+  if (value === 1) return '1 Tag vorher';
+  if (value === 7) return '1 Woche vorher';
+  return `${value} Tage vorher`;
+}
+
+function renderReminders() {
+  const today = todayStart();
+  const due = events
+    .filter(event => Number(event.reminderDays) >= 0)
+    .map(event => ({ event, next: nextOccurrence(event, today) }))
+    .map(item => ({ ...item, daysUntil: daysBetween(today, item.next) }))
+    .filter(item => item.daysUntil >= 0 && item.daysUntil <= Number(item.event.reminderDays))
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+
+  if (!due.length) {
+    els.reminderBanner.classList.add('hidden');
+    els.reminderBanner.innerHTML = '';
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+    return;
+  }
+
+  const lines = due.slice(0, 4).map(({ event, daysUntil }) => {
+    const when = daysUntil === 0 ? 'heute' : daysUntil === 1 ? 'morgen' : `in ${daysUntil} Tagen`;
+    return `<div class="reminder-item"><strong>${escapeHtml(event.title)}</strong><span>${when}</span></div>`;
+  }).join('');
+
+  els.reminderBanner.innerHTML = `
+    <div class="reminder-title">🔔 Erinnerung</div>
+    ${lines}
+    ${due.length > 4 ? `<div class="reminder-more">+${due.length - 4} weitere</div>` : ''}
+  `;
+  els.reminderBanner.classList.remove('hidden');
+  if ('setAppBadge' in navigator) navigator.setAppBadge(due.length).catch(() => {});
+}
+
 function renderHeader() {
   const now = new Date();
   els.todayText.textContent = formatDate(now, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -155,6 +197,7 @@ function renderUpcoming() {
     const age = ageText(event, next);
     const time = event.time ? ` · ${event.time} Uhr` : '';
     const yearly = event.yearly ? '<span class="badge">jährlich</span>' : '';
+    const reminder = Number(event.reminderDays) >= 0 ? `<span class="badge">🔔 ${reminderLabel(event.reminderDays)}</span>` : '';
     const note = event.notes ? ` · ${escapeHtml(event.notes)}` : '';
 
     card.innerHTML = `
@@ -167,6 +210,7 @@ function renderUpcoming() {
         <div class="event-meta">
           <span>${typeLabel(event.type)}${age ? ` · ${age}` : ''}${time}${note}</span>
           ${yearly}
+          ${reminder}
           <span class="badge">${relative}</span>
         </div>
       </div>
@@ -224,6 +268,7 @@ function renderCalendar() {
 
 function renderAll() {
   renderHeader();
+  renderReminders();
   renderUpcoming();
   renderCalendar();
 }
@@ -233,17 +278,20 @@ function openDialog(event = null, presetDate = null) {
   els.eventId.value = event?.id || '';
   els.dialogTitle.textContent = event ? 'Eintrag bearbeiten' : 'Neuer Eintrag';
   els.deleteBtn.classList.toggle('hidden', !event);
+  els.calendarExportBtn.classList.toggle('hidden', !event);
 
   if (event) {
     els.titleInput.value = event.title;
     els.typeInput.value = event.type;
     els.dateInput.value = event.date;
     els.timeInput.value = event.time || '';
+    els.reminderInput.value = String(Number.isFinite(Number(event.reminderDays)) ? Number(event.reminderDays) : -1);
     els.yearlyInput.checked = !!event.yearly;
     els.notesInput.value = event.notes || '';
   } else {
     els.typeInput.value = 'birthday';
     els.dateInput.value = isoFromLocalDate(presetDate || new Date());
+    els.reminderInput.value = '3';
     els.yearlyInput.checked = true;
   }
 
@@ -273,6 +321,7 @@ els.form.addEventListener('submit', (e) => {
     type: els.typeInput.value,
     date: els.dateInput.value,
     time: els.timeInput.value,
+    reminderDays: Number(els.reminderInput.value),
     yearly: els.yearlyInput.checked,
     notes: els.notesInput.value.trim(),
     updatedAt: new Date().toISOString(),
@@ -355,6 +404,7 @@ $('importInput').addEventListener('change', async (e) => {
       type: ['birthday','appointment','other'].includes(x.type) ? x.type : 'other',
       date: String(x.date),
       time: x.time ? String(x.time) : '',
+      reminderDays: Number.isFinite(Number(x.reminderDays)) ? Number(x.reminderDays) : -1,
       yearly: !!x.yearly,
       notes: x.notes ? String(x.notes) : '',
       updatedAt: x.updatedAt || new Date().toISOString(),
