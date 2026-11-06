@@ -185,3 +185,66 @@ label { display: grid; gap: 7px; font-size: .86rem; font-weight: 750; color: #52
 .reminder-item span, .reminder-more { color: var(--muted); font-size: .88rem; }
 .no-top-pad { padding-top: 0 !important; }
 .wrap-actions { flex-wrap: wrap; }
+
+[data-color="purple"] { --event-color: #7657b8; --event-soft: #f0e9ff; }
+[data-color="pink"]   { --event-color: #b85f87; --event-soft: #fdebf3; }
+[data-color="blue"]   { --event-color: #4f7eb8; --event-soft: #eaf3ff; }
+[data-color="green"]  { --event-color: #4f8a70; --event-soft: #eaf6ef; }
+[data-color="orange"] { --event-color: #b9793f; --event-soft: #fff0df; }
+[data-color="gray"]   { --event-color: #70717a; --event-soft: #f0f0f3; }
+
+.event-card[data-color] .date-tile {
+  color: var(--event-color);
+  background: var(--event-soft);
+}
+.day-event[data-color] {
+  background: var(--event-soft);
+  color: var(--event-color);
+  border-left: 3px solid var(--event-color);
+}
+.year { padding: 18px; }
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.year-month {
+  min-height: 170px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(255,255,255,.78);
+}
+.year-month h3 {
+  margin: 0 0 10px;
+  text-transform: capitalize;
+  font-size: 1rem;
+}
+.year-events { display: grid; gap: 7px; }
+.year-event {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+  align-items: start;
+  text-align: left;
+  border: 0;
+  border-left: 4px solid var(--event-color);
+  background: var(--event-soft);
+  border-radius: 11px;
+  padding: 8px;
+  color: var(--text);
+}
+.year-date { font-weight: 850; color: var(--event-color); }
+.year-event-text { min-width: 0; display: grid; gap: 2px; }
+.year-event-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .88rem; }
+.year-event-text small { color: var(--muted); font-size: .72rem; }
+.year-empty { color: #aaa4b4; padding: 5px 0; }
+
+@media (max-width: 820px) {
+  .year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .year-grid { grid-template-columns: 1fr; }
+  .year-month { min-height: auto; }
+}
