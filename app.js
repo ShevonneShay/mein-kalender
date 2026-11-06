@@ -338,6 +338,94 @@ els.typeInput.addEventListener('change', () => {
   if (els.typeInput.value === 'birthday') els.yearlyInput.checked = true;
 });
 
+
+function icsEscape(value = '') {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+}
+
+function icsDate(date) {
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function icsDateTime(date, time) {
+  const [h = '09', m = '00'] = (time || '09:00').split(':');
+  return `${icsDate(date)}T${h}${m}00`;
+}
+
+async function exportEventToCalendar(event) {
+  const start = nextOccurrence(event, todayStart());
+  const uid = `${event.id}@mein-kalender.local`;
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Mein Kalender//DE',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${icsEscape(uid)}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
+    `SUMMARY:${icsEscape(event.title)}`
+  ];
+
+  if (event.time) {
+    const startText = icsDateTime(start, event.time);
+    const end = new Date(start);
+    const [h, m] = event.time.split(':').map(Number);
+    end.setHours(h, m, 0, 0);
+    end.setHours(end.getHours() + 1);
+    lines.push(`DTSTART:${startText}`);
+    lines.push(`DTEND:${icsDateTime(end, `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`)}`);
+  } else {
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    lines.push(`DTSTART;VALUE=DATE:${icsDate(start)}`);
+    lines.push(`DTEND;VALUE=DATE:${icsDate(end)}`);
+  }
+
+  if (event.yearly) lines.push('RRULE:FREQ=YEARLY');
+  if (event.notes) lines.push(`DESCRIPTION:${icsEscape(event.notes)}`);
+
+  const reminderDays = Number(event.reminderDays);
+  if (reminderDays >= 0) {
+    lines.push('BEGIN:VALARM');
+    lines.push('ACTION:DISPLAY');
+    lines.push(`DESCRIPTION:Erinnerung: ${icsEscape(event.title)}`);
+    lines.push(reminderDays === 0 ? 'TRIGGER:-PT0M' : `TRIGGER:-P${reminderDays}D`);
+    lines.push('END:VALARM');
+  }
+
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+  const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+  const safeName = event.title.toLowerCase().replace(/[^a-z0-9äöüß]+/gi, '-').replace(/^-|-$/g, '') || 'termin';
+  const file = new File([blob], `${safeName}.ics`, { type: 'text/calendar' });
+
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: event.title });
+      showToast('Kalenderdatei bereit');
+      return;
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') return;
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Kalenderdatei erstellt');
+}
+
+els.calendarExportBtn.addEventListener('click', () => {
+  const event = events.find(e => e.id === els.eventId.value);
+  if (event) exportEventToCalendar(event);
+});
+
 els.deleteBtn.addEventListener('click', () => {
   const id = els.eventId.value;
   const item = events.find(e => e.id === id);
