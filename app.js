@@ -2,6 +2,7 @@ const STORAGE_KEY = 'mein-kalender.events.v1';
 
 let events = loadEvents();
 let calendarCursor = new Date();
+let yearCursor = new Date();
 let deferredInstallPrompt = null;
 
 const $ = (id) => document.getElementById(id);
@@ -14,12 +15,15 @@ const els = {
   filterSelect: $('filterSelect'),
   calendarGrid: $('calendarGrid'),
   monthTitle: $('monthTitle'),
+  yearGrid: $('yearGrid'),
+  yearTitle: $('yearTitle'),
   dialog: $('eventDialog'),
   form: $('eventForm'),
   dialogTitle: $('dialogTitle'),
   eventId: $('eventId'),
   titleInput: $('titleInput'),
   typeInput: $('typeInput'),
+  colorInput: $('colorInput'),
   dateInput: $('dateInput'),
   timeInput: $('timeInput'),
   reminderInput: $('reminderInput'),
@@ -91,6 +95,16 @@ function daysBetween(a, b) {
 
 function typeLabel(type) {
   return ({ birthday: 'Geburtstag', appointment: 'Termin', other: 'Sonstiges' })[type] || 'Eintrag';
+}
+
+function defaultColor(type) {
+  return ({ birthday: 'pink', appointment: 'purple', other: 'green' })[type] || 'purple';
+}
+
+function eventColor(event) {
+  return ['purple','pink','blue','green','orange','gray'].includes(event.color)
+    ? event.color
+    : defaultColor(event.type);
 }
 
 function formatDate(date, options = {}) {
@@ -192,6 +206,7 @@ function renderUpcoming() {
   items.forEach(({ event, next }) => {
     const card = document.createElement('article');
     card.className = 'event-card';
+    card.dataset.color = eventColor(event);
     const diff = daysBetween(from, next);
     const relative = diff === 0 ? 'Heute' : diff === 1 ? 'Morgen' : `In ${diff} Tagen`;
     const age = ageText(event, next);
@@ -252,6 +267,7 @@ function renderCalendar() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'day-event';
+      btn.dataset.color = eventColor(event);
       btn.textContent = event.title;
       btn.title = event.title;
       btn.addEventListener('click', () => openDialog(event));
@@ -266,11 +282,59 @@ function renderCalendar() {
   }
 }
 
+
+function renderYear() {
+  const year = yearCursor.getFullYear();
+  els.yearTitle.textContent = year;
+  els.yearGrid.innerHTML = '';
+
+  for (let month = 0; month < 12; month++) {
+    const monthCard = document.createElement('section');
+    monthCard.className = 'year-month';
+    const monthName = formatDate(new Date(year, month, 1), { month: 'long' });
+
+    const monthEvents = events
+      .map(event => ({ event, occ: occurrenceInMonth(event, year, month) }))
+      .filter(item => item.occ)
+      .sort((a, b) => a.occ - b.occ || (a.event.time || '').localeCompare(b.event.time || ''));
+
+    monthCard.innerHTML = `
+      <h3>${monthName}</h3>
+      <div class="year-events"></div>
+    `;
+
+    const list = monthCard.querySelector('.year-events');
+    if (!monthEvents.length) {
+      list.innerHTML = '<div class="year-empty">—</div>';
+    } else {
+      monthEvents.forEach(({ event, occ }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'year-event';
+        btn.dataset.color = eventColor(event);
+        const age = ageText(event, occ);
+        const time = event.time ? ` · ${event.time}` : '';
+        btn.innerHTML = `
+          <span class="year-date">${occ.getDate()}.</span>
+          <span class="year-event-text">
+            <strong>${escapeHtml(event.title)}</strong>
+            <small>${typeLabel(event.type)}${age ? ` · ${age}` : ''}${time}</small>
+          </span>
+        `;
+        btn.addEventListener('click', () => openDialog(event));
+        list.appendChild(btn);
+      });
+    }
+    els.yearGrid.appendChild(monthCard);
+  }
+}
+
 function renderAll() {
   renderHeader();
   renderReminders();
   renderUpcoming();
   renderCalendar();
+  renderYear();
 }
 
 function openDialog(event = null, presetDate = null) {
@@ -283,6 +347,7 @@ function openDialog(event = null, presetDate = null) {
   if (event) {
     els.titleInput.value = event.title;
     els.typeInput.value = event.type;
+    els.colorInput.value = eventColor(event);
     els.dateInput.value = event.date;
     els.timeInput.value = event.time || '';
     els.reminderInput.value = String(Number.isFinite(Number(event.reminderDays)) ? Number(event.reminderDays) : -1);
@@ -290,6 +355,7 @@ function openDialog(event = null, presetDate = null) {
     els.notesInput.value = event.notes || '';
   } else {
     els.typeInput.value = 'birthday';
+    els.colorInput.value = defaultColor('birthday');
     els.dateInput.value = isoFromLocalDate(presetDate || new Date());
     els.reminderInput.value = '3';
     els.yearlyInput.checked = true;
@@ -319,6 +385,7 @@ els.form.addEventListener('submit', (e) => {
     id,
     title: els.titleInput.value.trim(),
     type: els.typeInput.value,
+    color: els.colorInput.value,
     date: els.dateInput.value,
     time: els.timeInput.value,
     reminderDays: Number(els.reminderInput.value),
@@ -336,6 +403,7 @@ els.form.addEventListener('submit', (e) => {
 
 els.typeInput.addEventListener('change', () => {
   if (els.typeInput.value === 'birthday') els.yearlyInput.checked = true;
+  els.colorInput.value = defaultColor(els.typeInput.value);
 });
 
 
@@ -453,6 +521,15 @@ $('nextMonthBtn').addEventListener('click', () => {
   renderCalendar();
 });
 
+$('prevYearBtn').addEventListener('click', () => {
+  yearCursor = new Date(yearCursor.getFullYear() - 1, 0, 1);
+  renderYear();
+});
+$('nextYearBtn').addEventListener('click', () => {
+  yearCursor = new Date(yearCursor.getFullYear() + 1, 0, 1);
+  renderYear();
+});
+
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -490,6 +567,7 @@ $('importInput').addEventListener('change', async (e) => {
       id: String(x.id),
       title: String(x.title),
       type: ['birthday','appointment','other'].includes(x.type) ? x.type : 'other',
+      color: ['purple','pink','blue','green','orange','gray'].includes(x.color) ? x.color : defaultColor(x.type),
       date: String(x.date),
       time: x.time ? String(x.time) : '',
       reminderDays: Number.isFinite(Number(x.reminderDays)) ? Number(x.reminderDays) : -1,
